@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:share/share.dart';
+import 'package:transparent_image/transparent_image.dart';
+
+import 'gif_page.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -14,7 +18,7 @@ class _HomePageState extends State<HomePage> {
   Future<Map> _getGifs() async {
     http.Response response;
 
-    if (_search == null)
+    if (_search == null || _search.isEmpty)
       response = await http.get(
           "https://api.giphy.com/v1/gifs/trending?api_key=nioJVYAj2Qa2D1fAVEbAjomngqmjZ5mB&limit=25&rating=G");
     else
@@ -59,6 +63,7 @@ class _HomePageState extends State<HomePage> {
               onSubmitted: (text) {
                 setState(() {
                   _search = text;
+                  _offSet = 0;
                 });
               },
             ),
@@ -95,7 +100,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   int _getCount(List data) {
-    if (_search == null)
+    if (_search == null || _search.isEmpty)
       return data.length;
     else
       return data.length + 1;
@@ -111,13 +116,24 @@ class _HomePageState extends State<HomePage> {
         ),
         itemCount: _getCount(snapshot.data["data"]),
         itemBuilder: (context, index) {
-          if (_search == null || index < snapshot.data["data"].length)
+          if (_search == null || _search.isEmpty || index < snapshot.data["data"].length)
             return GestureDetector(
-              child: Image.network(
-                snapshot.data["data"][index]["images"]["fixed_height"]["url"],
+              child: FadeInImage.memoryNetwork(
+                placeholder: kTransparentImage,
+                image: snapshot.data["data"][index]["images"]["fixed_height"]["url"],
                 height: 300.0,
                 fit: BoxFit.cover,
               ),
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            GifPage(snapshot.data["data"][index])));
+              },
+              onLongPress: () {
+                Share.share(snapshot.data["data"][index]["images"]["fixed_height"]["url"]);
+              },
             );
           else {
             return Container(
@@ -127,14 +143,15 @@ class _HomePageState extends State<HomePage> {
                   children: <Widget>[
                     Icon(Icons.add, size: 70.0, color: Colors.white),
                     Text("Carregar mais...",
-                      style: TextStyle(color: Colors.white, fontSize: 22.0))
+                        style: TextStyle(color: Colors.white, fontSize: 22.0))
                   ],
                 ),
-                onTap: (){
+                onTap: () {
                   setState(() {
                     _offSet += 19;
                   });
                 },
+
               ),
             );
           }
